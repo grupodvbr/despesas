@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Controle de Gastos</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter}
+
+body{
+background:#f4f6f9;
+color:#111;
+padding:20px;
+}
+
+/* HEADER */
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
+.header h1{
+font-size:26px;
+font-weight:800;
+}
+
+/* CARDS */
+.cards{
+display:flex;
+gap:15px;
+margin-bottom:20px;
+}
+
+.card{
+flex:1;
+background:#fff;
+padding:18px;
+border-radius:12px;
+box-shadow:0 5px 15px rgba(0,0,0,.08);
+}
+
+.card h3{
+font-size:13px;
+color:#666;
+margin-bottom:5px;
+}
+
+.card strong{
+font-size:22px;
+}
+
+/* FORM */
+.form{
+display:grid;
+grid-template-columns: repeat(6,1fr);
+gap:10px;
+background:#fff;
+padding:15px;
+border-radius:12px;
+box-shadow:0 5px 15px rgba(0,0,0,.08);
+margin-bottom:20px;
+}
+
+.form input,.form select{
+padding:10px;
+border-radius:8px;
+border:1px solid #ddd;
+}
+
+.form button{
+background:#111;
+color:#fff;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+/* TABELA */
+table{
+width:100%;
+border-collapse:collapse;
+background:#fff;
+border-radius:12px;
+overflow:hidden;
+box-shadow:0 5px 15px rgba(0,0,0,.08);
+}
+
+thead{
+background:#111;
+color:#fff;
+}
+
+th,td{
+padding:10px;
+text-align:center;
+border-bottom:1px solid #eee;
+}
+
+tr:hover{
+background:#f9fafb;
+}
+
+/* CORES */
+.despesa{color:#dc3545;font-weight:600}
+.receita{color:#28a745;font-weight:600}
+
+/* BOTÕES */
+.btn{
+padding:5px 10px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+
+.delete{background:#dc3545;color:#fff}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h1>💰 Controle de Gastos</h1>
+  <button onclick="carregar()">🔄 Atualizar</button>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <h3>Total Receitas</h3>
+    <strong id="totalReceita">R$ 0</strong>
+  </div>
+  <div class="card">
+    <h3>Total Despesas</h3>
+    <strong id="totalDespesa">R$ 0</strong>
+  </div>
+  <div class="card">
+    <h3>Saldo</h3>
+    <strong id="saldo">R$ 0</strong>
+  </div>
+</div>
+
+<div class="form">
+  <input type="date" id="data">
+  <input placeholder="Descrição" id="descricao">
+  
+  <select id="categoria">
+    <option>Alimentação</option>
+    <option>Transporte</option>
+    <option>Compras</option>
+    <option>Contas</option>
+    <option>Outros</option>
+  </select>
+
+  <input type="number" id="valor" placeholder="Valor">
+
+  <select id="tipo">
+    <option value="DESPESA">Despesa</option>
+    <option value="RECEITA">Receita</option>
+  </select>
+
+  <button onclick="salvar()">Salvar</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Descrição</th>
+<th>Categoria</th>
+<th>Valor</th>
+<th>Tipo</th>
+<th>Ação</th>
+</tr>
+</thead>
+<tbody id="tabela"></tbody>
+</table>
+
+<script>
+const sb = supabase.createClient(
+ "https://dxkszikemntfusfyrzos.supabase.co",
+ "sb_publishable_NNFvdfSXgOdGGVcSbphbjQ_brC3_9ed"
+);
+
+let dados = [];
+
+/* CARREGAR */
+async function carregar(){
+
+const { data } = await sb
+.from("jaqueline")
+.select("*")
+.order("data",{ascending:false});
+
+dados = data || [];
+
+render();
+}
+
+/* RENDER */
+function render(){
+
+const tabela = document.getElementById("tabela");
+tabela.innerHTML = "";
+
+let receita = 0;
+let despesa = 0;
+
+dados.forEach(i=>{
+
+const valor = parseFloat(i.valor) || 0;
+
+if(i.tipo === "RECEITA") receita += valor;
+else despesa += valor;
+
+tabela.innerHTML += `
+<tr>
+<td>${i.data || ""}</td>
+<td contenteditable onblur="editar('${i.id}','descricao',this.innerText)">${i.descricao||""}</td>
+<td>${i.categoria||""}</td>
+<td class="${i.tipo==='RECEITA'?'receita':'despesa'}">
+R$ ${valor.toFixed(2)}
+</td>
+<td>${i.tipo}</td>
+<td>
+<button class="btn delete" onclick="excluir('${i.id}')">X</button>
+</td>
+</tr>
+`;
+
+});
+
+document.getElementById("totalReceita").innerText = "R$ " + receita.toFixed(2);
+document.getElementById("totalDespesa").innerText = "R$ " + despesa.toFixed(2);
+document.getElementById("saldo").innerText = "R$ " + (receita - despesa).toFixed(2);
+}
+
+/* SALVAR */
+async function salvar(){
+
+const obj = {
+data: document.getElementById("data").value,
+descricao: document.getElementById("descricao").value,
+categoria: document.getElementById("categoria").value,
+valor: parseFloat(document.getElementById("valor").value),
+tipo: document.getElementById("tipo").value
+};
+
+await sb.from("jaqueline").insert([obj]);
+
+carregar();
+}
+
+/* EDITAR */
+async function editar(id,campo,valor){
+
+await sb
+.from("jaqueline")
+.update({[campo]:valor})
+.eq("id",id);
+
+}
+
+/* EXCLUIR */
+async function excluir(id){
+
+if(!confirm("Excluir?")) return;
+
+await sb.from("jaqueline").delete().eq("id",id);
+
+carregar();
+}
+
+carregar();
+</script>
+
+</body>
+</html>
