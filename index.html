@@ -204,8 +204,7 @@ function render(){
 
  tabela.innerHTML+=`
  <tr>
- <td>${i.data||""}</td>
-
+<td>${formatarDataBR(i.data)}</td>
  <td contenteditable onblur="editar('${i.id}','descricao',this.innerText)">
  ${i.descricao||""}
  </td>
@@ -277,6 +276,25 @@ async function excluir(id){
 }
 
 carregar();
+
+
+
+function formatarDataBR(data){
+
+  if(!data) return "";
+
+  const d = new Date(data);
+
+  const dia = String(d.getDate()).padStart(2,"0");
+  const mes = String(d.getMonth()+1).padStart(2,"0");
+  const ano = d.getFullYear();
+
+  return `${dia}/${mes}/${ano}`;
+}
+
+
+
+ 
 </script>
 
 </body>
