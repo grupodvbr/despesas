@@ -2,17 +2,17 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Controle de Gastos</title>
+<title>Controle Financeiro</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Inter}
 
 body{
-background:#f4f6f9;
-color:#111;
+background:#f1f5f9;
+color:#0f172a;
 padding:20px;
 }
 
@@ -31,39 +31,38 @@ font-weight:800;
 
 /* CARDS */
 .cards{
-display:flex;
+display:grid;
+grid-template-columns:repeat(3,1fr);
 gap:15px;
 margin-bottom:20px;
 }
 
 .card{
-flex:1;
 background:#fff;
-padding:18px;
+padding:20px;
 border-radius:12px;
-box-shadow:0 5px 15px rgba(0,0,0,.08);
+box-shadow:0 4px 15px rgba(0,0,0,.05);
 }
 
 .card h3{
 font-size:13px;
-color:#666;
-margin-bottom:5px;
+color:#64748b;
 }
 
 .card strong{
-font-size:22px;
+font-size:24px;
 }
 
 /* FORM */
 .form{
 display:grid;
-grid-template-columns: repeat(6,1fr);
+grid-template-columns:repeat(6,1fr);
 gap:10px;
 background:#fff;
 padding:15px;
 border-radius:12px;
-box-shadow:0 5px 15px rgba(0,0,0,.08);
 margin-bottom:20px;
+box-shadow:0 4px 15px rgba(0,0,0,.05);
 }
 
 .form input,.form select{
@@ -73,7 +72,7 @@ border:1px solid #ddd;
 }
 
 .form button{
-background:#111;
+background:#0f172a;
 color:#fff;
 border:none;
 border-radius:8px;
@@ -87,82 +86,63 @@ border-collapse:collapse;
 background:#fff;
 border-radius:12px;
 overflow:hidden;
-box-shadow:0 5px 15px rgba(0,0,0,.08);
 }
 
 thead{
-background:#111;
+background:#0f172a;
 color:#fff;
 }
 
 th,td{
-padding:10px;
+padding:12px;
 text-align:center;
 border-bottom:1px solid #eee;
 }
 
 tr:hover{
-background:#f9fafb;
+background:#f8fafc;
 }
 
-/* CORES */
-.despesa{color:#dc3545;font-weight:600}
-.receita{color:#28a745;font-weight:600}
+.receita{color:#16a34a;font-weight:600}
+.despesa{color:#dc2626;font-weight:600}
 
-/* BOTÕES */
-.btn{
-padding:5px 10px;
+/* INPUT EDIT */
+.editavel{
 border:none;
-border-radius:6px;
-cursor:pointer;
+background:transparent;
+width:100%;
+text-align:center;
 }
-
-.delete{background:#dc3545;color:#fff}
 </style>
 </head>
 
 <body>
 
 <div class="header">
-  <h1>💰 Controle de Gastos</h1>
-  <button onclick="carregar()">🔄 Atualizar</button>
+<h1>💰 Controle Financeiro</h1>
+<button onclick="carregar()">🔄 Atualizar</button>
 </div>
 
 <div class="cards">
-  <div class="card">
-    <h3>Total Receitas</h3>
-    <strong id="totalReceita">R$ 0</strong>
-  </div>
-  <div class="card">
-    <h3>Total Despesas</h3>
-    <strong id="totalDespesa">R$ 0</strong>
-  </div>
-  <div class="card">
-    <h3>Saldo</h3>
-    <strong id="saldo">R$ 0</strong>
-  </div>
+<div class="card"><h3>Receitas</h3><strong id="receita">R$ 0</strong></div>
+<div class="card"><h3>Despesas</h3><strong id="despesa">R$ 0</strong></div>
+<div class="card"><h3>Saldo</h3><strong id="saldo">R$ 0</strong></div>
 </div>
 
 <div class="form">
-  <input type="date" id="data">
-  <input placeholder="Descrição" id="descricao">
-  
-  <select id="categoria">
-    <option>Alimentação</option>
-    <option>Transporte</option>
-    <option>Compras</option>
-    <option>Contas</option>
-    <option>Outros</option>
-  </select>
+<input type="date" id="data">
+<input id="descricao" placeholder="Descrição">
 
-  <input type="number" id="valor" placeholder="Valor">
+<input id="categoria" placeholder="Categoria">
 
-  <select id="tipo">
-    <option value="DESPESA">Despesa</option>
-    <option value="RECEITA">Receita</option>
-  </select>
+<input id="valor" placeholder="R$ 0,00" oninput="formatarMoeda(this)">
 
-  <button onclick="salvar()">Salvar</button>
+<select id="tipo">
+<option value="DESPESA">Despesa</option>
+<option value="RECEITA">Receita</option>
+</select>
+
+<button onclick="salvar()">Salvar</button>
 </div>
 
 <table>
@@ -185,93 +165,115 @@ const sb = supabase.createClient(
  "sb_publishable_NNFvdfSXgOdGGVcSbphbjQ_brC3_9ed"
 );
 
-let dados = [];
+let dados=[];
+
+/* MÁSCARA */
+function formatarMoeda(input){
+ let v = input.value.replace(/\D/g,'');
+ v = (v/100).toFixed(2)+'';
+ v = v.replace(".",",");
+ v = v.replace(/\B(?=(\d{3})+(?!\d))/g,".");
+ input.value = "R$ "+v;
+}
+
+/* CONVERTE */
+function moedaParaNumero(v){
+ return parseFloat(v.replace("R$","").replace(/\./g,"").replace(",","."));
+}
 
 /* CARREGAR */
 async function carregar(){
-
-const { data } = await sb
-.from("jaqueline")
-.select("*")
-.order("data",{ascending:false});
-
-dados = data || [];
-
-render();
+ const { data } = await sb.from("jaqueline").select("*").order("data",{ascending:false});
+ dados = data || [];
+ render();
 }
 
 /* RENDER */
 function render(){
+ let receita=0, despesa=0;
 
-const tabela = document.getElementById("tabela");
-tabela.innerHTML = "";
+ const tabela = document.getElementById("tabela");
+ tabela.innerHTML="";
 
-let receita = 0;
-let despesa = 0;
+ dados.forEach(i=>{
 
-dados.forEach(i=>{
+ const v = parseFloat(i.valor)||0;
 
-const valor = parseFloat(i.valor) || 0;
+ if(i.tipo==="RECEITA") receita+=v;
+ else despesa+=v;
 
-if(i.tipo === "RECEITA") receita += valor;
-else despesa += valor;
+ tabela.innerHTML+=`
+ <tr>
+ <td>${i.data||""}</td>
 
-tabela.innerHTML += `
-<tr>
-<td>${i.data || ""}</td>
-<td contenteditable onblur="editar('${i.id}','descricao',this.innerText)">${i.descricao||""}</td>
-<td>${i.categoria||""}</td>
-<td class="${i.tipo==='RECEITA'?'receita':'despesa'}">
-R$ ${valor.toFixed(2)}
-</td>
-<td>${i.tipo}</td>
-<td>
-<button class="btn delete" onclick="excluir('${i.id}')">X</button>
-</td>
-</tr>
-`;
+ <td contenteditable onblur="editar('${i.id}','descricao',this.innerText)">
+ ${i.descricao||""}
+ </td>
 
-});
+ <td contenteditable onblur="editar('${i.id}','categoria',this.innerText)">
+ ${i.categoria||""}
+ </td>
 
-document.getElementById("totalReceita").innerText = "R$ " + receita.toFixed(2);
-document.getElementById("totalDespesa").innerText = "R$ " + despesa.toFixed(2);
-document.getElementById("saldo").innerText = "R$ " + (receita - despesa).toFixed(2);
+ <td contenteditable onblur="editarValor('${i.id}',this.innerText)"
+ class="${i.tipo==='RECEITA'?'receita':'despesa'}">
+ R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+ </td>
+
+ <td>${i.tipo}</td>
+
+ <td><button onclick="excluir('${i.id}')">🗑️</button></td>
+ </tr>
+ `;
+ });
+
+ document.getElementById("receita").innerText="R$ "+receita.toLocaleString('pt-BR',{minimumFractionDigits:2});
+ document.getElementById("despesa").innerText="R$ "+despesa.toLocaleString('pt-BR',{minimumFractionDigits:2});
+ document.getElementById("saldo").innerText="R$ "+(receita-despesa).toLocaleString('pt-BR',{minimumFractionDigits:2});
 }
 
 /* SALVAR */
 async function salvar(){
 
-const obj = {
-data: document.getElementById("data").value,
-descricao: document.getElementById("descricao").value,
-categoria: document.getElementById("categoria").value,
-valor: parseFloat(document.getElementById("valor").value),
-tipo: document.getElementById("tipo").value
-};
+ const valorFormatado = moedaParaNumero(document.getElementById("valor").value);
 
-await sb.from("jaqueline").insert([obj]);
+ const obj={
+  data: document.getElementById("data").value,
+  descricao: document.getElementById("descricao").value,
+  categoria: document.getElementById("categoria").value,
+  valor: valorFormatado,
+  tipo: document.getElementById("tipo").value
+ };
 
-carregar();
+ await sb.from("jaqueline").insert([obj]);
+
+ limpar();
+ carregar();
 }
 
-/* EDITAR */
+/* LIMPAR */
+function limpar(){
+ document.getElementById("descricao").value="";
+ document.getElementById("categoria").value="";
+ document.getElementById("valor").value="";
+}
+
+/* EDITAR TEXTO */
 async function editar(id,campo,valor){
+ await sb.from("jaqueline").update({[campo]:valor}).eq("id",id);
+}
 
-await sb
-.from("jaqueline")
-.update({[campo]:valor})
-.eq("id",id);
-
+/* EDITAR VALOR */
+async function editarValor(id,valor){
+ const v = moedaParaNumero(valor);
+ await sb.from("jaqueline").update({valor:v}).eq("id",id);
+ carregar();
 }
 
 /* EXCLUIR */
 async function excluir(id){
-
-if(!confirm("Excluir?")) return;
-
-await sb.from("jaqueline").delete().eq("id",id);
-
-carregar();
+ if(!confirm("Excluir?")) return;
+ await sb.from("jaqueline").delete().eq("id",id);
+ carregar();
 }
 
 carregar();
