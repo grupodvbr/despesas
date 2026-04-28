@@ -246,7 +246,12 @@ async function salvar(){
 
  const valorFormatado = moedaParaNumero(document.getElementById("valor").value);
  const file = document.getElementById("anexo").files[0];
+const dataInput = document.getElementById("data").value;
 
+if(!dataInput){
+  alert("Selecione a data!");
+  return;
+}
  let url = null;
 
  // 🔥 UPLOAD
