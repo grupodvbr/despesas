@@ -141,6 +141,7 @@ text-align:center;
 <option value="DESPESA">Despesa</option>
 <option value="RECEITA">Receita</option>
 </select>
+<input type="file" id="anexo"> <!-- 🔥 AQUI -->
 
 <button onclick="salvar()">Salvar</button>
 </div>
@@ -153,6 +154,7 @@ text-align:center;
 <th>Categoria</th>
 <th>Valor</th>
 <th>Tipo</th>
+<th>Anexo</th> <!-- 🔥 NOVO -->
 <th>Ação</th>
 </tr>
 </thead>
@@ -218,9 +220,18 @@ function render(){
  R$ ${v.toLocaleString('pt-BR',{minimumFractionDigits:2})}
  </td>
 
- <td>${i.tipo}</td>
+<td>${i.tipo}</td>
 
- <td><button onclick="excluir('${i.id}')">🗑️</button></td>
+<td>
+ ${i.anexo_url 
+   ? `<a href="${i.anexo_url}" target="_blank">📎 Ver</a>` 
+   : "-"
+ }
+</td>
+
+<td><button onclick="excluir('${i.id}')">🗑️</button></td>
+
+
  </tr>
  `;
  });
@@ -234,13 +245,39 @@ function render(){
 async function salvar(){
 
  const valorFormatado = moedaParaNumero(document.getElementById("valor").value);
+ const file = document.getElementById("anexo").files[0];
 
- const obj={
+ let url = null;
+
+ // 🔥 UPLOAD
+ if(file){
+
+   const nomeArquivo = Date.now() + "_" + file.name;
+
+   const { error: uploadError } = await sb.storage
+     .from("buffet")
+     .upload("jaqueline/" + nomeArquivo, file);
+
+   if(uploadError){
+     alert("Erro no upload");
+     console.error(uploadError);
+     return;
+   }
+
+   const { data } = sb.storage
+     .from("buffet")
+     .getPublicUrl("jaqueline/" + nomeArquivo);
+
+   url = data.publicUrl;
+ }
+
+ const obj = {
   data: document.getElementById("data").value,
   descricao: document.getElementById("descricao").value,
   categoria: document.getElementById("categoria").value,
   valor: valorFormatado,
-  tipo: document.getElementById("tipo").value
+  tipo: document.getElementById("tipo").value,
+  anexo_url: url
  };
 
  await sb.from("jaqueline").insert([obj]);
@@ -248,7 +285,6 @@ async function salvar(){
  limpar();
  carregar();
 }
-
 /* LIMPAR */
 function limpar(){
  document.getElementById("descricao").value="";
